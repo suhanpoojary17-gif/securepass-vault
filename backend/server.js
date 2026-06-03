@@ -4,6 +4,9 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 const vaultRoutes = require("./routes/vaultRoutes");
 const app = express();
+const sendEmail = require("./utils/sendEmail");
+const otpRoutes = require("./routes/otpRoutes");
+const securityRoutes = require("./routes/securityRoutes");
 
 // Middleware
 app.use(cors());
@@ -29,9 +32,22 @@ app.get("/", (req, res) => {
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 app.use("/api/vault", vaultRoutes);
+app.use("/api/otp", otpRoutes);
+app.use("/api/security", securityRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 5000;
+
+// Test Email Function
+app.get("/test-email", async (req, res) => {
+  await sendEmail(
+    process.env.EMAIL_USER,
+    "SecurePass Vault Test",
+    "Congratulations! Email sending is working."
+  );
+
+  res.send("Test email sent.");
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
