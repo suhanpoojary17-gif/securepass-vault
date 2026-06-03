@@ -7,6 +7,8 @@ const app = express();
 const sendEmail = require("./utils/sendEmail");
 const otpRoutes = require("./routes/otpRoutes");
 const securityRoutes = require("./routes/securityRoutes");
+const passwordRoutes = require("./routes/passwordRoutes");
+
 
 // Middleware
 app.use(cors());
@@ -27,6 +29,12 @@ mongoose
 app.get("/", (req, res) => {
   res.send("SecurePass Vault API Running");
 });
+
+//Password Generator Route
+app.use(
+  "/api/password",
+  passwordRoutes
+);
 
 // Routes (IMPORTANT: must be before listen)
 const authRoutes = require("./routes/authRoutes");
