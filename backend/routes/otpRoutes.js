@@ -8,16 +8,7 @@ const {
   verifyOtp,
 } = require("../controllers/otpController");
 
-router.post(
-  "/send",
-  authMiddleware,
-  sendOtp
-);
-
-router.post(
-  "/verify",
-  authMiddleware,
-  verifyOtp
-);
+router.post("/send", authMiddleware, sendOtp);
+router.post("/verify", authMiddleware, verifyOtp);
 
 module.exports = router;

@@ -13,12 +13,29 @@ exports.sendOtp = async (req, res) => {
       });
     }
 
-    // Generate 6-digit OTP
+    // 🔥 RESEND COOLDOWN (60 seconds)
+    const existingOtp = await Otp.findOne({
+      email: user.email,
+    });
+
+    if (existingOtp) {
+      const timeDiff =
+        (Date.now() - existingOtp.createdAt) / 1000;
+
+      if (timeDiff < 60) {
+        return res.status(429).json({
+          message:
+            "Please wait 60 seconds before requesting a new OTP",
+        });
+      }
+    }
+
+    // Generate OTP
     const otp = Math.floor(
       100000 + Math.random() * 900000
     ).toString();
 
-    // Delete old OTPs for this email
+    // Remove old OTPs
     await Otp.deleteMany({
       email: user.email,
     });
@@ -29,7 +46,7 @@ exports.sendOtp = async (req, res) => {
       otp,
     });
 
-    // Send email
+    // Send Email
     await sendEmail(
       user.email,
       "SecurePass Vault OTP",
@@ -52,6 +69,12 @@ exports.sendOtp = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
   try {
     const { otp } = req.body;
+
+    if (!otp) {
+      return res.status(400).json({
+        message: "OTP is required",
+      });
+    }
 
     const user = await User.findById(req.user.id);
 
@@ -80,7 +103,6 @@ exports.verifyOtp = async (req, res) => {
     res.status(200).json({
       message: "OTP verified successfully",
     });
-
   } catch (error) {
     console.error(error);
 
