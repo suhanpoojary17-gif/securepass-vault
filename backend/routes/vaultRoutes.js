@@ -8,6 +8,7 @@ const {
   getCredentials,
   updateCredential,
   deleteCredential,
+  viewPassword,
 } = require("../controllers/vaultController");
 
 // Add Credential
@@ -31,13 +32,17 @@ router.put(
   updateCredential
 );
 
-
-
 // Delete Credential
 router.delete(
   "/:id",
   authMiddleware,
   deleteCredential
+);
+
+router.get(
+  "/view/:id",
+  authMiddleware,
+  viewPassword
 );
 
 module.exports = router;

@@ -108,3 +108,37 @@ exports.deleteCredential = async (req, res) => {
     });
   }
 };
+
+// View Password
+exports.viewPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const credential = await Vault.findOne({
+      _id: id,
+      userId: req.user.id,
+    });
+
+    if (!credential) {
+      return res.status(404).json({
+        message: "Credential not found",
+      });
+    }
+
+    const decryptedPassword = decrypt(
+      credential.encryptedPassword
+    );
+
+    res.status(200).json({
+      platform: credential.platform,
+      accountUsername: credential.accountUsername,
+      password: decryptedPassword,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
