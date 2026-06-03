@@ -55,12 +55,21 @@ exports.updateCredential = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const updateData = { ...req.body };
+
+    // Encrypt password before updating
+    if (updateData.encryptedPassword) {
+      updateData.encryptedPassword = encrypt(
+        updateData.encryptedPassword
+      );
+    }
+
     const updatedCredential = await Vault.findOneAndUpdate(
       {
         _id: id,
         userId: req.user.id,
       },
-      req.body,
+      updateData,
       {
         new: true,
       }
@@ -77,6 +86,8 @@ exports.updateCredential = async (req, res) => {
       credential: updatedCredential,
     });
   } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       message: "Server error",
     });
