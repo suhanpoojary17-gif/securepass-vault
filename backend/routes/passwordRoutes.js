@@ -5,6 +5,7 @@ const {
   generatePassword,
   generatePersonalizedPassword,
   checkPasswordStrength,
+  checkPasswordExpiry,
 } = require("../controllers/passwordController");
 
 router.get(
@@ -20,6 +21,14 @@ router.post(
 router.post(
   "/strength",
   checkPasswordStrength
+);
+
+const authMiddleware = require("../middleware/authMiddleware");
+
+router.get(
+  "/expiry/:id",
+  authMiddleware,
+  checkPasswordExpiry
 );
 
 module.exports = router;

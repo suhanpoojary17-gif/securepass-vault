@@ -130,3 +130,55 @@ exports.checkPasswordStrength = async (req, res) => {
   }
 };
 
+const Vault = require("../models/Vault");
+
+// Password Expiry Reminder
+exports.checkPasswordExpiry = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const credential = await Vault.findOne({
+      _id: id,
+      userId: req.user.id,
+    });
+
+    if (!credential) {
+      return res.status(404).json({
+        message: "Credential not found",
+      });
+    }
+
+    const createdDate = new Date(
+      credential.createdAt
+    );
+
+    const currentDate = new Date();
+
+    const differenceInTime =
+      currentDate - createdDate;
+
+    const ageInDays = Math.floor(
+      differenceInTime /
+      (1000 * 60 * 60 * 24)
+    );
+
+    let recommendation = "Password is fresh";
+
+    if (ageInDays >= 90) {
+      recommendation =
+        "Consider changing this password";
+    }
+
+    res.status(200).json({
+      platform: credential.platform,
+      passwordAge: `${ageInDays} days`,
+      recommendation,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
