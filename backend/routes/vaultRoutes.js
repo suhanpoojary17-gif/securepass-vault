@@ -39,6 +39,7 @@ router.delete(
   deleteCredential
 );
 
+//View Credential
 router.get(
   "/view/:id",
   authMiddleware,

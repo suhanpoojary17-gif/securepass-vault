@@ -1,5 +1,6 @@
 const Vault = require("../models/Vault");
 const { encrypt, decrypt } = require("../utils/encryption");
+const createAuditLog = require("../utils/auditLogger");
 
 // Add Credential
 exports.addCredential = async (req, res) => {
@@ -18,6 +19,12 @@ exports.addCredential = async (req, res) => {
       encryptedPassword: encrypt(encryptedPassword),
       notes,
     });
+
+    await createAuditLog(
+       req.user.id,
+       "ADD_CREDENTIAL",
+       `Added ${platform} credential`
+    );
 
     res.status(201).json({
       message: "Credential added successfully",
@@ -81,6 +88,12 @@ exports.updateCredential = async (req, res) => {
       });
     }
 
+    await createAuditLog(
+       req.user.id,
+       "UPDATE_CREDENTIAL",
+       `Updated ${updatedCredential.platform} credential`
+    );
+
     res.status(200).json({
       message: "Credential updated successfully",
       credential: updatedCredential,
@@ -110,6 +123,12 @@ exports.deleteCredential = async (req, res) => {
       });
     }
 
+    await createAuditLog(
+      req.user.id,
+      "DELETE_CREDENTIAL",
+      `Deleted ${deletedCredential.platform} credential`
+    );
+
     res.status(200).json({
       message: "Credential deleted successfully",
     });
@@ -138,6 +157,12 @@ exports.viewPassword = async (req, res) => {
 
     const decryptedPassword = decrypt(
       credential.encryptedPassword
+    );
+    
+    await createAuditLog(
+      req.user.id,
+     "VIEW_PASSWORD",
+    `Viewed ${credential.platform} password`
     );
 
     res.status(200).json({

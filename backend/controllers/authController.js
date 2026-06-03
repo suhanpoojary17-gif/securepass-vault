@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const createAuditLog = require("../utils/auditLogger");
 
 // REGISTER
 exports.register = async (req, res) => {
@@ -98,6 +99,12 @@ exports.login = async (req, res) => {
       }
     );
 
+    await createAuditLog(
+       user._id,
+       "LOGIN",
+       "User logged into SecurePass Vault"
+    );
+
     res.status(200).json({
       message: "Login successful",
       token,
@@ -107,6 +114,7 @@ exports.login = async (req, res) => {
         email: user.email,
       },
     });
+  
   } catch (error) {
     console.error("Login Error:", error);
 
