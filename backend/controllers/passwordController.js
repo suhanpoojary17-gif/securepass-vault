@@ -77,3 +77,56 @@ exports.generatePersonalizedPassword = async (req, res) => {
     });
   }
 };
+
+// Password Strength Analyzer
+
+exports.checkPasswordStrength = async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        message: "Password is required",
+      });
+    }
+
+    let score = 0;
+
+    // Length check
+    if (password.length >= 8) score++;
+
+    // Uppercase check
+    if (/[A-Z]/.test(password)) score++;
+
+    // Lowercase check
+    if (/[a-z]/.test(password)) score++;
+
+    // Number check
+    if (/[0-9]/.test(password)) score++;
+
+    // Special character check
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    let strength = "";
+
+    if (score <= 2) {
+      strength = "Weak";
+    } else if (score <= 4) {
+      strength = "Medium";
+    } else {
+      strength = "Strong";
+    }
+
+    res.status(200).json({
+      password,
+      strength,
+      score: `${score}/5`,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+

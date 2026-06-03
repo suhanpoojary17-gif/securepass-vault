@@ -4,6 +4,7 @@ const router = express.Router();
 const {
   generatePassword,
   generatePersonalizedPassword,
+  checkPasswordStrength,
 } = require("../controllers/passwordController");
 
 router.get(
@@ -14,6 +15,11 @@ router.get(
 router.post(
   "/generate-personalized",
   generatePersonalizedPassword
+);
+
+router.post(
+  "/strength",
+  checkPasswordStrength
 );
 
 module.exports = router;
