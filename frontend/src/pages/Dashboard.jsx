@@ -8,12 +8,24 @@ const Dashboard = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // MODAL STATES
+  // VIEW MODAL
   const [selectedCredential, setSelectedCredential] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+  // EDIT MODAL
+  const [editData, setEditData] = useState(null);
+  const [showEdit, setShowEdit] = useState(false);
+
+  // OTP STATES
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [pendingId, setPendingId] = useState(null);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(false); // ✅ FIXED
+
   const navigate = useNavigate();
 
+  // FETCH DATA
   const fetchData = async () => {
     try {
       const res = await getCredentials();
@@ -29,19 +41,80 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
+  // COPY
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard");
   };
 
-  // ✅ FIXED: FETCH PASSWORD FROM BACKEND
-  const handleViewPassword = async (id) => {
+  // SEND OTP
+  const handleSendOtp = async (id) => {
+    if (otpLoading || otpCooldown) return;
+
     try {
-      const res = await api.get(`/vault/view/${id}`);
+      setOtpLoading(true);
+
+      await api.post("/otp/send", { id }); // ✅ pass id if backend supports
+
+      setPendingId(id);
+      setOtpSent(true);
+
+      // cooldown (optional safety)
+      setOtpCooldown(true);
+      setTimeout(() => setOtpCooldown(false), 15000);
+
+      toast.success("OTP sent successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // VERIFY OTP
+  const handleVerifyOtp = async () => {
+    try {
+      await api.post("/otp/verify", { otp });
+
+      const res = await api.get(`/vault/view/${pendingId}`);
       setSelectedCredential(res.data);
       setShowModal(true);
+
+      setOtpSent(false);
+      setOtp("");
     } catch (error) {
-      toast.error("Failed to fetch password");
+      toast.error("Invalid OTP");
+    }
+  };
+
+  // DELETE
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/vault/${id}`);
+      toast.success("Deleted successfully");
+
+      setData((prev) => prev.filter((item) => item._id !== id)); // ✅ safer
+    } catch {
+      toast.error("Delete failed");
+    }
+  };
+
+  // EDIT
+  const handleEdit = (item) => {
+    setEditData(item);
+    setShowEdit(true);
+  };
+
+  // UPDATE
+  const handleUpdate = async () => {
+    try {
+      await api.put(`/vault/${editData._id}`, editData);
+      toast.success("Updated successfully");
+
+      setShowEdit(false);
+      fetchData();
+    } catch {
+      toast.error("Update failed");
     }
   };
 
@@ -50,18 +123,18 @@ const Dashboard = () => {
     setShowModal(false);
   };
 
+  const closeEditModal = () => {
+    setEditData(null);
+    setShowEdit(false);
+  };
+
   if (loading) {
-    return (
-      <div className="text-center mt-10 text-white">
-        Loading Vault...
-      </div>
-    );
+    return <div className="text-center mt-10 text-white">Loading Vault...</div>;
   }
 
   return (
     <div className="min-h-screen bg-black text-white p-6">
 
-      {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">🔐 My Vault</h1>
 
@@ -76,38 +149,41 @@ const Dashboard = () => {
       {/* GRID */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {data.map((item) => (
-          <div
-            key={item._id}
-            className="bg-gray-900 p-4 rounded-xl shadow-lg"
-          >
-            <h2 className="text-xl font-semibold mb-2">
-              {item.platform}
-            </h2>
+          <div key={item._id} className="bg-gray-900 p-4 rounded-xl">
 
-            <p className="text-gray-300 mb-1">
-              👤 {item.accountUsername}
-            </p>
+            <h2 className="text-xl font-semibold">{item.platform}</h2>
 
-            <p className="text-gray-400 mb-3">
-              🔑 •••••••••
-            </p>
+            <p className="text-gray-300">👤 {item.accountUsername}</p>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-3 flex-wrap">
 
               <button
-                onClick={() =>
-                  handleCopy(item.accountUsername)
-                }
-                className="bg-green-500 px-3 py-1 rounded text-sm"
+                onClick={() => handleCopy(item.accountUsername)}
+                className="bg-green-500 px-2 py-1 rounded"
               >
-                Copy Username
+                Copy
               </button>
 
               <button
-                onClick={() => handleViewPassword(item._id)}
-                className="bg-yellow-500 px-3 py-1 rounded text-sm"
+                disabled={otpLoading || otpCooldown}
+                onClick={() => handleSendOtp(item._id)}
+                className="bg-yellow-500 px-2 py-1 rounded disabled:opacity-50"
               >
-                View Password
+                {otpCooldown ? "Wait..." : "View Password"}
+              </button>
+
+              <button
+                onClick={() => handleEdit(item)}
+                className="bg-blue-500 px-2 py-1 rounded"
+              >
+                Edit
+              </button>
+
+              <button
+                onClick={() => handleDelete(item._id)}
+                className="bg-red-500 px-2 py-1 rounded"
+              >
+                Delete
               </button>
 
             </div>
@@ -115,45 +191,74 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* MODAL */}
+      {/* VIEW MODAL */}
       {showModal && selectedCredential && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+          <div className="bg-gray-900 p-6 rounded w-96 text-center">
 
-          <div className="bg-gray-900 p-6 rounded-lg w-96 text-center">
-
-            <h2 className="text-xl mb-2 font-bold">
+            <h2 className="text-xl mb-2">
               🔐 {selectedCredential.platform}
             </h2>
 
-            <p className="text-gray-300 mb-2">
-              👤 {selectedCredential.accountUsername}
-            </p>
-
-            <p className="bg-gray-800 p-3 rounded mb-4 break-all">
+            <p className="bg-gray-800 p-3">
               {selectedCredential.password}
             </p>
 
-            <div className="flex gap-2 justify-center">
+            <div className="flex gap-2 justify-center mt-3">
 
               <button
-                onClick={() =>
-                  handleCopy(selectedCredential.password)
-                }
-                className="bg-green-500 px-4 py-2 rounded"
+                onClick={() => handleCopy(selectedCredential.password)}
+                className="bg-green-500 px-3 py-1 rounded"
               >
                 Copy
               </button>
 
               <button
                 onClick={closeModal}
-                className="bg-red-500 px-4 py-2 rounded"
+                className="bg-red-500 px-3 py-1 rounded"
               >
                 Close
               </button>
 
             </div>
-          </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* OTP MODAL */}
+      {otpSent && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+          <div className="bg-gray-900 p-6 w-80 text-center">
+
+            <h2 className="text-xl mb-3">Enter OTP</h2>
+
+            <input
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              className="w-full p-2 mb-3 bg-gray-800"
+              placeholder="6-digit OTP"
+            />
+
+            <div className="flex gap-2 justify-center">
+
+              <button
+                onClick={handleVerifyOtp}
+                className="bg-green-500 px-3 py-1 rounded"
+              >
+                Verify
+              </button>
+
+              <button
+                onClick={() => setOtpSent(false)}
+                className="bg-red-500 px-3 py-1 rounded"
+              >
+                Cancel
+              </button>
+
+            </div>
+
+          </div>
         </div>
       )}
 
