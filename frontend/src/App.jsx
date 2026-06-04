@@ -6,17 +6,54 @@ import AddCredential from "./pages/AddCredential";
 import Verification from "./pages/Verification";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <div className="bg-black min-h-screen text-white">
       <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
         <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/add" element={<AddCredential />} />
-        <Route path="/verify" element={<Verification />} />
-        <Route path="/settings" element={<Settings />} />
 
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/add"
+          element={
+            <ProtectedRoute>
+              <AddCredential />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/verify"
+          element={
+            <ProtectedRoute>
+              <Verification />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Not Found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

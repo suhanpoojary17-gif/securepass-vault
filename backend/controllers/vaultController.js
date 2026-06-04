@@ -12,29 +12,34 @@ exports.addCredential = async (req, res) => {
       notes,
     } = req.body;
 
-    const vault = await Vault.create({
+    if (!platform || !accountUsername || !encryptedPassword) {
+      return res.status(400).json({
+        message: "Required fields missing",
+      });
+    }
+
+    // 🔐 ENCRYPT HERE (FIXED)
+    const encrypted = encrypt(encryptedPassword);
+
+    const credential = await Vault.create({
       userId: req.user.id,
       platform,
       accountUsername,
-      encryptedPassword: encrypt(encryptedPassword),
+      encryptedPassword: encrypted,
       notes,
     });
 
-    await createAuditLog(
-       req.user.id,
-       "ADD_CREDENTIAL",
-       `Added ${platform} credential`
-    );
-
     res.status(201).json({
       message: "Credential added successfully",
-      vault,
+      credential,
     });
+
   } catch (error) {
-    console.error(error);
+    console.error("ADD ERROR:", error);
 
     res.status(500).json({
       message: "Server error",
+      error: error.message,
     });
   }
 };
