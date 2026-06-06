@@ -8,10 +8,11 @@ const Dashboard = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // MODALS
+  // VIEW MODAL
   const [selectedCredential, setSelectedCredential] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+  // EDIT MODAL
   const [editData, setEditData] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
 
@@ -22,9 +23,13 @@ const Dashboard = () => {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(false);
 
+  // DELETE
+  const [deleteId, setDeleteId] = useState(null);
+  const [showDelete, setShowDelete] = useState(false);
+
   const navigate = useNavigate();
 
-  // FETCH
+  // FETCH DATA
   const fetchData = async () => {
     try {
       const res = await getCredentials();
@@ -53,7 +58,10 @@ const Dashboard = () => {
     try {
       setOtpLoading(true);
 
-      await api.post("/otp/send");
+      await api.post("/otp/send", {
+        purpose: "VIEW_CREDENTIAL",
+        credentialId: id,
+      });
 
       setPendingId(id);
       setOtpSent(true);
@@ -75,7 +83,8 @@ const Dashboard = () => {
       await api.post("/otp/verify", { otp });
 
       const res = await api.get(`/vault/view/${pendingId}`);
-      setSelectedCredential(res.data);
+
+      setSelectedCredential(res.data.credential);
       setShowModal(true);
 
       setOtpSent(false);
@@ -85,13 +94,22 @@ const Dashboard = () => {
     }
   };
 
-  // DELETE
-  const handleDelete = async (id) => {
-    try {
-      await api.delete(`/vault/${id}`);
-      toast.success("Deleted");
+  // DELETE FLOW
+  const confirmDelete = (id) => {
+    setDeleteId(id);
+    setShowDelete(true);
+  };
 
-      setData((prev) => prev.filter((i) => i._id !== id));
+  const handleDelete = async () => {
+    try {
+      await api.delete(`/vault/${deleteId}`);
+
+      toast.success("Deleted successfully");
+
+      setData((prev) => prev.filter((item) => item._id !== deleteId));
+
+      setShowDelete(false);
+      setDeleteId(null);
     } catch {
       toast.error("Delete failed");
     }
@@ -101,7 +119,7 @@ const Dashboard = () => {
   const handleEdit = (item) => {
     setEditData({
       ...item,
-      encryptedPassword: "", // safer for input
+      password: "",
     });
     setShowEdit(true);
   };
@@ -112,7 +130,7 @@ const Dashboard = () => {
       const payload = {
         platform: editData.platform,
         accountUsername: editData.accountUsername,
-        encryptedPassword: editData.encryptedPassword,
+        password: editData.password,
         notes: editData.notes || "",
       };
 
@@ -165,13 +183,13 @@ const Dashboard = () => {
       {/* GRID */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {data.map((item) => (
-          <div key={item._id} className="bg-gray-900 p-4 rounded-xl">
-
+          <div
+            key={item._id}
+            className="bg-gray-900 p-4 rounded-xl hover:scale-[1.02] transition"
+          >
             <h2 className="text-xl font-semibold">{item.platform}</h2>
 
-            <p className="text-gray-300">
-              👤 {item.accountUsername}
-            </p>
+            <p className="text-gray-300">👤 {item.accountUsername}</p>
 
             <div className="flex gap-2 mt-3 flex-wrap">
 
@@ -198,7 +216,7 @@ const Dashboard = () => {
               </button>
 
               <button
-                onClick={() => handleDelete(item._id)}
+                onClick={() => confirmDelete(item._id)}
                 className="bg-red-500 px-2 py-1 rounded"
               >
                 Delete
@@ -274,11 +292,11 @@ const Dashboard = () => {
             />
 
             <input
-              value={editData.encryptedPassword || ""}
+              value={editData.password || ""}
               onChange={(e) =>
                 setEditData({
                   ...editData,
-                  encryptedPassword: e.target.value,
+                  password: e.target.value,
                 })
               }
               placeholder="New Password"
@@ -332,6 +350,35 @@ const Dashboard = () => {
               <button
                 onClick={() => setOtpSent(false)}
                 className="bg-red-500 px-3 py-1 rounded"
+              >
+                Cancel
+              </button>
+
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* DELETE MODAL */}
+      {showDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+          <div className="bg-gray-900 p-6 rounded w-80 text-center">
+
+            <h2 className="text-xl mb-4">Delete this credential?</h2>
+
+            <div className="flex gap-2 justify-center">
+
+              <button
+                onClick={handleDelete}
+                className="bg-red-500 px-3 py-1 rounded"
+              >
+                Delete
+              </button>
+
+              <button
+                onClick={() => setShowDelete(false)}
+                className="bg-gray-500 px-3 py-1 rounded"
               >
                 Cancel
               </button>

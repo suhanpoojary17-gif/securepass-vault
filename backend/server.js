@@ -2,15 +2,21 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
-const vaultRoutes = require("./routes/vaultRoutes");
+
 const app = express();
-const sendEmail = require("./utils/sendEmail");
+
+// Routes
+const authRoutes = require("./routes/authRoutes");
+const vaultRoutes = require("./routes/vaultRoutes");
 const otpRoutes = require("./routes/otpRoutes");
 const securityRoutes = require("./routes/securityRoutes");
 const passwordRoutes = require("./routes/passwordRoutes");
 
+// Utils
+const sendEmail = require("./utils/sendEmail");
 
-// Middleware
+
+//  MIDDLEWARE 
 app.use(cors({
   origin: "http://localhost:5173",
   credentials: true
@@ -18,7 +24,8 @@ app.use(cors({
 
 app.use(express.json());
 
-// MongoDB Connection
+
+//  MONGODB 
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
@@ -29,28 +36,22 @@ mongoose
     console.error(err);
   });
 
-// Test Route
+
+//  BASIC TEST ROUTE 
 app.get("/", (req, res) => {
   res.send("SecurePass Vault API Running");
 });
 
-//Password Generator Route
-app.use(
-  "/api/password",
-  passwordRoutes
-);
 
-// Routes (IMPORTANT: must be before listen)
-const authRoutes = require("./routes/authRoutes");
+//  ROUTES
 app.use("/api/auth", authRoutes);
 app.use("/api/vault", vaultRoutes);
 app.use("/api/otp", otpRoutes);
 app.use("/api/security", securityRoutes);
+app.use("/api/password", passwordRoutes);
+app.use("/api/audit-logs", require("./routes/auditRoutes"));
 
-// Start Server
-const PORT = process.env.PORT || 5000;
-
-// Test Email Function
+// TEST EMAIL ROUTE 
 app.get("/test-email", async (req, res) => {
   await sendEmail(
     process.env.EMAIL_USER,
@@ -60,6 +61,10 @@ app.get("/test-email", async (req, res) => {
 
   res.send("Test email sent.");
 });
+
+
+//START SERVER 
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

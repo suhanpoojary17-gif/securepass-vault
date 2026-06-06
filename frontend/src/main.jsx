@@ -5,11 +5,16 @@ import App from "./App";
 import "./index.css";
 import { Toaster } from "react-hot-toast";
 
+// Theme context import
+import { ThemeProvider } from "./context/ThemeContext";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-      <Toaster />
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <App />
+        <Toaster />
+      </BrowserRouter>
+    </ThemeProvider>
   </React.StrictMode>
 );
