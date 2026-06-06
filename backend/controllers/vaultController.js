@@ -18,7 +18,7 @@ exports.addCredential = async (req, res) => {
       });
     }
 
-    // 🔐 ENCRYPT HERE (FIXED)
+    //Encrypt password before saving
     const encrypted = encrypt(encryptedPassword);
 
     const credential = await Vault.create({
@@ -69,11 +69,14 @@ exports.updateCredential = async (req, res) => {
 
     const updateData = { ...req.body };
 
-    // Encrypt password before updating
+    //Always handle password safely (frontend sends plain password as encryptedPassword)
     if (updateData.encryptedPassword) {
-      updateData.encryptedPassword = encrypt(
-        updateData.encryptedPassword
-      );
+      updateData.encryptedPassword = encrypt(updateData.encryptedPassword);
+    }
+
+    //Remove accidental wrong fields if frontend sends them
+    if (updateData.password) {
+      delete updateData.password;
     }
 
     const updatedCredential = await Vault.findOneAndUpdate(
@@ -84,6 +87,7 @@ exports.updateCredential = async (req, res) => {
       updateData,
       {
         new: true,
+        runValidators: true,
       }
     );
 
@@ -94,20 +98,22 @@ exports.updateCredential = async (req, res) => {
     }
 
     await createAuditLog(
-       req.user.id,
-       "UPDATE_CREDENTIAL",
-       `Updated ${updatedCredential.platform} credential`
+      req.user.id,
+      "UPDATE_CREDENTIAL",
+      `Updated ${updatedCredential.platform} credential`
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Credential updated successfully",
       credential: updatedCredential,
     });
-  } catch (error) {
-    console.error(error);
 
-    res.status(500).json({
+  } catch (error) {
+    console.error("UPDATE ERROR:", error);
+
+    return res.status(500).json({
       message: "Server error",
+      error: error.message,
     });
   }
 };

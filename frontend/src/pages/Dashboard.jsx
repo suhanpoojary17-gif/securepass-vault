@@ -8,29 +8,28 @@ const Dashboard = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // VIEW MODAL
+  // MODALS
   const [selectedCredential, setSelectedCredential] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  // EDIT MODAL
   const [editData, setEditData] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
 
-  // OTP STATES
+  // OTP
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [pendingId, setPendingId] = useState(null);
   const [otpLoading, setOtpLoading] = useState(false);
-  const [otpCooldown, setOtpCooldown] = useState(false); // ✅ FIXED
+  const [otpCooldown, setOtpCooldown] = useState(false);
 
   const navigate = useNavigate();
 
-  // FETCH DATA
+  // FETCH
   const fetchData = async () => {
     try {
       const res = await getCredentials();
       setData(res.data.credentials || []);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load vault data");
     } finally {
       setLoading(false);
@@ -44,7 +43,7 @@ const Dashboard = () => {
   // COPY
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
+    toast.success("Copied");
   };
 
   // SEND OTP
@@ -54,18 +53,17 @@ const Dashboard = () => {
     try {
       setOtpLoading(true);
 
-      await api.post("/otp/send", { id }); // ✅ pass id if backend supports
+      await api.post("/otp/send");
 
       setPendingId(id);
       setOtpSent(true);
 
-      // cooldown (optional safety)
       setOtpCooldown(true);
       setTimeout(() => setOtpCooldown(false), 15000);
 
-      toast.success("OTP sent successfully");
+      toast.success("OTP sent");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send OTP");
+      toast.error(error.response?.data?.message || "OTP failed");
     } finally {
       setOtpLoading(false);
     }
@@ -82,7 +80,7 @@ const Dashboard = () => {
 
       setOtpSent(false);
       setOtp("");
-    } catch (error) {
+    } catch {
       toast.error("Invalid OTP");
     }
   };
@@ -91,9 +89,9 @@ const Dashboard = () => {
   const handleDelete = async (id) => {
     try {
       await api.delete(`/vault/${id}`);
-      toast.success("Deleted successfully");
+      toast.success("Deleted");
 
-      setData((prev) => prev.filter((item) => item._id !== id)); // ✅ safer
+      setData((prev) => prev.filter((i) => i._id !== id));
     } catch {
       toast.error("Delete failed");
     }
@@ -101,23 +99,36 @@ const Dashboard = () => {
 
   // EDIT
   const handleEdit = (item) => {
-    setEditData(item);
+    setEditData({
+      ...item,
+      encryptedPassword: "", // safer for input
+    });
     setShowEdit(true);
   };
 
   // UPDATE
   const handleUpdate = async () => {
     try {
-      await api.put(`/vault/${editData._id}`, editData);
-      toast.success("Updated successfully");
+      const payload = {
+        platform: editData.platform,
+        accountUsername: editData.accountUsername,
+        encryptedPassword: editData.encryptedPassword,
+        notes: editData.notes || "",
+      };
+
+      await api.put(`/vault/${editData._id}`, payload);
+
+      toast.success("Updated");
 
       setShowEdit(false);
+      setEditData(null);
       fetchData();
     } catch {
       toast.error("Update failed");
     }
   };
 
+  // CLOSE MODALS
   const closeModal = () => {
     setSelectedCredential(null);
     setShowModal(false);
@@ -129,12 +140,17 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return <div className="text-center mt-10 text-white">Loading Vault...</div>;
+    return (
+      <div className="text-center mt-10 text-white">
+        Loading Vault...
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-black text-white p-6">
 
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">🔐 My Vault</h1>
 
@@ -153,7 +169,9 @@ const Dashboard = () => {
 
             <h2 className="text-xl font-semibold">{item.platform}</h2>
 
-            <p className="text-gray-300">👤 {item.accountUsername}</p>
+            <p className="text-gray-300">
+              👤 {item.accountUsername}
+            </p>
 
             <div className="flex gap-2 mt-3 flex-wrap">
 
@@ -226,6 +244,69 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* EDIT MODAL */}
+      {showEdit && editData && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+
+          <div className="bg-gray-900 p-6 w-96 rounded">
+
+            <h2 className="text-xl mb-3 text-center">
+              Edit Credential
+            </h2>
+
+            <input
+              value={editData.platform || ""}
+              onChange={(e) =>
+                setEditData({ ...editData, platform: e.target.value })
+              }
+              className="w-full p-2 mb-2 bg-gray-800"
+            />
+
+            <input
+              value={editData.accountUsername || ""}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  accountUsername: e.target.value,
+                })
+              }
+              className="w-full p-2 mb-2 bg-gray-800"
+            />
+
+            <input
+              value={editData.encryptedPassword || ""}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  encryptedPassword: e.target.value,
+                })
+              }
+              placeholder="New Password"
+              className="w-full p-2 mb-4 bg-gray-800"
+            />
+
+            <div className="flex gap-2 justify-center">
+
+              <button
+                onClick={handleUpdate}
+                className="bg-green-500 px-3 py-1 rounded"
+              >
+                Save
+              </button>
+
+              <button
+                onClick={closeEditModal}
+                className="bg-red-500 px-3 py-1 rounded"
+              >
+                Cancel
+              </button>
+
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* OTP MODAL */}
       {otpSent && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
@@ -237,7 +318,6 @@ const Dashboard = () => {
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               className="w-full p-2 mb-3 bg-gray-800"
-              placeholder="6-digit OTP"
             />
 
             <div className="flex gap-2 justify-center">
