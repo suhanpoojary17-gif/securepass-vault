@@ -1,18 +1,18 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const Sidebar = ({ open, setOpen }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // 1. Clear storage (IMPORTANT)
     localStorage.removeItem("token");
-    localStorage.removeItem("user"); // if you store user
+    localStorage.removeItem("user");
 
-    // 2. Close sidebar
     setOpen(false);
-
-    // 3. Redirect to login
     navigate("/login");
+  };
+
+  const handleNav = () => {
+    setOpen(false);
   };
 
   return (
@@ -26,30 +26,45 @@ const Sidebar = ({ open, setOpen }) => {
 
       <nav className="p-4 flex flex-col gap-4">
 
-        <a href="/dashboard" onClick={() => setOpen(false)}>
+        <Link to="/dashboard" onClick={handleNav}>
           Dashboard
-        </a>
+        </Link>
 
-        <a href="/add" onClick={() => setOpen(false)}>
+        <Link to="/add" onClick={handleNav}>
           Add Credential
-        </a>
+        </Link>
 
-        <a href="/settings" onClick={() => setOpen(false)}>
+        <Link to="/generator" onClick={handleNav}>
+          Password Generator
+        </Link>
+
+        <Link to="/personalized" onClick={handleNav}>
+          Personalized Generator
+        </Link>
+
+        <Link to="/strength" onClick={handleNav}>
+          Strength Checker
+        </Link>
+
+        <Link to="/expiry" onClick={handleNav}>
+          Expiry Checker
+        </Link>
+
+        <Link to="/settings" onClick={handleNav}>
           Settings
-        </a>
+        </Link>
 
-        <a href="/audit-logs" onClick={() => setOpen(false)}>
+        <Link to="/audit-logs" onClick={handleNav}>
           Activity
-        </a>
+        </Link>
 
-        {/*  LOGOUT BUTTON */}
+        {/* LOGOUT */}
         <button
           onClick={handleLogout}
           className="mt-6 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded"
         >
           Logout
         </button>
-
       </nav>
     </div>
   );
