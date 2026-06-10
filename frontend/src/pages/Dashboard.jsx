@@ -27,9 +27,13 @@ const Dashboard = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [showDelete, setShowDelete] = useState(false);
   
-  //eXPIRY CHECKER
+  //EXPIRY CHECKER
   const [expiryInfo, setExpiryInfo] = useState(null);
   const [showExpiryModal, setShowExpiryModal] = useState(false);
+
+  //OTP FOR EDIT & DELETE
+  const [pendingAction, setPendingAction] = useState(null);
+  const [pendingData, setPendingData] = useState(null);
 
   const navigate = useNavigate();
 
@@ -55,6 +59,41 @@ const Dashboard = () => {
     toast.success("Copied");
   };
 
+  //otp for edit, delete
+  const requestOtpForEdit = async (item) => {
+  try {
+    await api.post("/otp/send", {
+      purpose: "EDIT_CREDENTIAL",
+      credentialId: item._id,
+    });
+
+    setPendingAction("EDIT");
+    setPendingData(item);
+    setOtpSent(true);
+
+    toast.success("OTP sent");
+  } catch (error) {
+    toast.error(error.response?.data?.message || "OTP failed");
+  }
+};
+
+const requestOtpForDelete = async (id) => {
+  try {
+    await api.post("/otp/send", {
+      purpose: "DELETE_CREDENTIAL",
+      credentialId: id,
+    });
+
+    setPendingAction("DELETE");
+    setPendingData(id);
+    setOtpSent(true);
+
+    toast.success("OTP sent");
+  } catch (error) {
+    toast.error(error.response?.data?.message || "OTP failed");
+  }
+};
+
   // SEND OTP
   const handleSendOtp = async (id) => {
     if (otpLoading || otpCooldown) return;
@@ -68,6 +107,7 @@ const Dashboard = () => {
       });
 
       setPendingId(id);
+      setPendingAction(null);
       setOtpSent(true);
 
       setOtpCooldown(true);
@@ -82,30 +122,40 @@ const Dashboard = () => {
   };
 
   // VERIFY OTP
-  const handleVerifyOtp = async () => {
-    try {
-      await api.post("/otp/verify", { otp });
+const handleVerifyOtp = async () => {
+  try {
+    await api.post("/otp/verify", { otp });
 
+    if (pendingAction === null) {
       const res = await api.get(`/vault/view/${pendingId}`);
-
-      console.log("Vault Response:", res.data);
 
       setSelectedCredential(
         res.data.credential || res.data
       );
 
       setShowModal(true);
-      setOtpSent(false);
-      setOtp("");
-
       toast.success("Password retrieved");
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        error.response?.data?.message || "Invalid OTP"
-      );
+    } else if (pendingAction === "EDIT") {
+      handleEdit(pendingData);
+      toast.success("OTP verified");
+    } else if (pendingAction === "DELETE") {
+      setDeleteId(pendingData);
+      setShowDelete(true);
+      toast.success("OTP verified");
     }
-  };
+
+    setOtp("");
+    setOtpSent(false);
+    setPendingAction(null);
+    setPendingData(null);
+    setPendingId(null);
+
+  } catch (error) {
+    toast.error(
+      error.response?.data?.message || "Invalid OTP"
+    );
+  }
+};
 
   // DELETE FLOW
   const confirmDelete = (id) => {
@@ -243,14 +293,14 @@ const Dashboard = () => {
             </button>
 
             <button
-              onClick={() => handleEdit(item)}
+              onClick={() => requestOtpForEdit(item)}
               className="bg-blue-500 px-2 py-1 rounded"
             >
               Edit
             </button>
 
               <button
-                onClick={() => confirmDelete(item._id)}
+                onClick={() => requestOtpForDelete(item._id)}
                 className="bg-red-500 px-2 py-1 rounded"
               >
                 Delete
@@ -382,11 +432,17 @@ const Dashboard = () => {
               </button>
 
               <button
-                onClick={() => setOtpSent(false)}
-                className="bg-red-500 px-3 py-1 rounded"
-              >
-                Cancel
-              </button>
+              onClick={() => {
+                setOtpSent(false);
+                setOtp("");
+                setPendingAction(null);
+                setPendingData(null);
+                setPendingId(null);
+              }}
+              className="bg-red-500 px-3 py-1 rounded"
+            >
+              Cancel
+            </button>
 
             </div>
 
