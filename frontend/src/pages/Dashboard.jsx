@@ -26,6 +26,10 @@ const Dashboard = () => {
   // DELETE
   const [deleteId, setDeleteId] = useState(null);
   const [showDelete, setShowDelete] = useState(false);
+  
+  //eXPIRY CHECKER
+  const [expiryInfo, setExpiryInfo] = useState(null);
+  const [showExpiryModal, setShowExpiryModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -84,13 +88,22 @@ const Dashboard = () => {
 
       const res = await api.get(`/vault/view/${pendingId}`);
 
-      setSelectedCredential(res.data.credential);
-      setShowModal(true);
+      console.log("Vault Response:", res.data);
 
+      setSelectedCredential(
+        res.data.credential || res.data
+      );
+
+      setShowModal(true);
       setOtpSent(false);
       setOtp("");
-    } catch {
-      toast.error("Invalid OTP");
+
+      toast.success("Password retrieved");
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error.response?.data?.message || "Invalid OTP"
+      );
     }
   };
 
@@ -143,6 +156,20 @@ const Dashboard = () => {
       fetchData();
     } catch {
       toast.error("Update failed");
+    }
+  };
+
+  // CHECK PASSWORD EXPIRY
+  const handleCheckExpiry = async (id) => {
+    try {
+      const res = await api.get(`/password/expiry/${id}`);
+
+      setExpiryInfo(res.data);
+      setShowExpiryModal(true);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Failed to check expiry"
+      );
     }
   };
 
@@ -200,20 +227,27 @@ const Dashboard = () => {
                 Copy
               </button>
 
-              <button
-                disabled={otpLoading || otpCooldown}
-                onClick={() => handleSendOtp(item._id)}
-                className="bg-yellow-500 px-2 py-1 rounded disabled:opacity-50"
-              >
-                {otpCooldown ? "Wait..." : "View Password"}
-              </button>
+            <button
+              disabled={otpLoading || otpCooldown}
+              onClick={() => handleSendOtp(item._id)}
+              className="bg-yellow-500 px-2 py-1 rounded disabled:opacity-50"
+            >
+              {otpCooldown ? "Wait..." : "View Password"}
+            </button>
 
-              <button
-                onClick={() => handleEdit(item)}
-                className="bg-blue-500 px-2 py-1 rounded"
-              >
-                Edit
-              </button>
+            <button
+              onClick={() => handleCheckExpiry(item._id)}
+              className="bg-purple-500 px-2 py-1 rounded"
+            >
+              Check Expiry
+            </button>
+
+            <button
+              onClick={() => handleEdit(item)}
+              className="bg-blue-500 px-2 py-1 rounded"
+            >
+              Edit
+            </button>
 
               <button
                 onClick={() => confirmDelete(item._id)}
@@ -229,21 +263,21 @@ const Dashboard = () => {
 
       {/* VIEW MODAL */}
       {showModal && selectedCredential && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-gray-900 p-6 rounded w-96 text-center">
 
             <h2 className="text-xl mb-2">
-              🔐 {selectedCredential.platform}
+              🔐 {selectedCredential?.platform}
             </h2>
 
-            <p className="bg-gray-800 p-3">
-              {selectedCredential.password}
+            <p className="bg-gray-800 p-3 break-all">
+              {selectedCredential?.password}
             </p>
 
             <div className="flex gap-2 justify-center mt-3">
 
               <button
-                onClick={() => handleCopy(selectedCredential.password)}
+                onClick={() => handleCopy(selectedCredential?.password)}
                 className="bg-green-500 px-3 py-1 rounded"
               >
                 Copy
@@ -384,6 +418,56 @@ const Dashboard = () => {
               </button>
 
             </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* EXPIRY MODAL */}
+      {showExpiryModal && expiryInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 p-6 rounded-xl w-96 text-center border border-gray-700">
+
+            <h2 className="text-2xl font-bold mb-4 text-purple-400">
+              Password Status
+            </h2>
+
+            <div className="space-y-3">
+
+              <p className="text-lg">
+                🌐 Platform:
+                <span className="font-semibold ml-2">
+                  {expiryInfo.platform}
+                </span>
+              </p>
+
+              <p className="text-lg text-yellow-400">
+                ⏳ Age: {expiryInfo.passwordAge}
+              </p>
+
+              <p
+                className={`text-lg font-semibold ${
+                  expiryInfo.recommendation
+                    .toLowerCase()
+                    .includes("fresh")
+                    ? "text-green-400"
+                    : "text-red-400"
+                }`}
+              >
+                {expiryInfo.recommendation}
+              </p>
+
+            </div>
+
+            <button
+              onClick={() => {
+                setShowExpiryModal(false);
+                setExpiryInfo(null);
+              }}
+              className="mt-6 bg-red-500 px-4 py-2 rounded hover:bg-red-600"
+            >
+              Close
+            </button>
 
           </div>
         </div>
