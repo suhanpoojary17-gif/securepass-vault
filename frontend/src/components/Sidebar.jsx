@@ -46,10 +46,6 @@ const Sidebar = ({ open, setOpen }) => {
           Strength Checker
         </Link>
 
-        <Link to="/expiry" onClick={handleNav}>
-          Expiry Checker
-        </Link>
-
         <Link to="/settings" onClick={handleNav}>
           Settings
         </Link>
