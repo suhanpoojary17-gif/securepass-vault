@@ -21,15 +21,14 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="bg-black min-h-screen text-white">
-
+    <div className="bg-white min-h-screen text-[#001E2B]">
       {/* Sidebar */}
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
 
       {/* Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-40"
+          className="fixed inset-0 bg-black/50 z-40"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -38,10 +37,10 @@ function App() {
       <div className="w-full">
 
         {/* Top bar */}
-        <div className="p-4">
+        <div className="p-4 border-b border-[#E8ECEF] bg-white sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="text-2xl"
+            className="text-2xl text-[#001E2B]"
           >
             ☰
           </button>

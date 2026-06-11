@@ -5,6 +5,8 @@ import App from "./App";
 import "./index.css";
 import { Toaster } from "react-hot-toast";
 
+import "@fontsource/inter";
+
 // Theme context import
 import { ThemeProvider } from "./context/ThemeContext";
 
